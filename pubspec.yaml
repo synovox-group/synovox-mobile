@@ -1,0 +1,53 @@
+name: synovox_mobile
+description: Synovox — Application mobile de gestion d'assistant téléphonique IA
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Navigation
+  go_router: ^13.2.0
+
+  # State management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # HTTP & API
+  dio: ^5.4.3
+  retrofit: ^4.1.0
+
+  # Secure storage (tokens)
+  flutter_secure_storage: ^9.0.0
+
+  # UI
+  cupertino_icons: ^1.0.6
+  lucide_icons: ^0.0.10
+  google_fonts: ^6.2.1
+  shimmer: ^3.0.0
+  fl_chart: ^0.68.0
+
+  # Utils
+  intl: ^0.19.0
+  timeago: ^3.6.1
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+  retrofit_generator: ^8.1.0
+  json_serializable: ^6.8.0
+  json_annotation: ^4.9.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
