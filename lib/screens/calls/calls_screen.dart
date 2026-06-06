@@ -221,29 +221,93 @@ class _CallTile extends StatelessWidget {
     final seconds = call['duration_seconds'] as int? ?? 0;
     final duration = _formatDuration(seconds);
 
+    final summary = call['summary'] as String?
+        ?? call['ai_summary'] as String?
+        ?? call['transcript_summary'] as String?
+        ?? call['call_summary'] as String?
+        ?? call['notes'] as String?;
+
+    final callerNumber = call['caller_number'] as String?
+        ?? call['from_number'] as String?
+        ?? call['phone_number'] as String?
+        ?? '—';
+
+    final contactName = (call['contact'] as Map?)?['name'] as String?
+        ?? call['contact_name'] as String?;
+
     return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
-          child: Icon(icon, color: color, size: 18),
-        ),
-        title: Text(
-          call['caller_number'] ?? '—',
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-        ),
-        subtitle: Text(
-          '$dateStr · $duration',
-          style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _StatusBadge(status: status),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
-          ],
-        ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: () => context.go('/calls/${call['id']}'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: color.withValues(alpha: 0.1),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            contactName ?? callerNumber,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        _StatusBadge(status: status),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      contactName != null
+                          ? '$callerNumber · $dateStr · $duration'
+                          : '$dateStr · $duration',
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF94A3B8)),
+                    ),
+                    if (summary != null && summary.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.auto_awesome_rounded,
+                              size: 12, color: Color(0xFF7C3AED)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              summary,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF7C3AED),
+                                height: 1.3,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded,
+                  color: Color(0xFFCBD5E1), size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }
