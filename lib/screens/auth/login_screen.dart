@@ -82,7 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Text('Synovox Assistant',
+                    Text('Synovox',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.w700,

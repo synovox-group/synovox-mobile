@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>fr</string>
 	<key>CFBundleDisplayName</key>
-	<string>Synovox Assistant</string>
+	<string>Synovox</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
