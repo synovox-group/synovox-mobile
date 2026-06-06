@@ -33,8 +33,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _passwordCtrl.text,
           );
       if (mounted) context.go('/dashboard');
-    } catch (_) {
-      setState(() => _error = 'Email ou mot de passe incorrect.');
+    } catch (e) {
+      final s = e.toString();
+      String msg;
+      if (s.contains('401') || s.contains('422') || s.contains('credentials') || s.contains('Unauthorized')) {
+        msg = 'Email ou mot de passe incorrect.';
+      } else if (s.contains('SocketException') || s.contains('network') || s.contains('connection')) {
+        msg = 'Erreur réseau — vérifiez votre connexion.';
+      } else {
+        msg = s; // show raw error for debugging
+      }
+      setState(() => _error = msg);
     }
   }
 
@@ -63,8 +72,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: const Color(0xFF2563EB),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(Icons.phone_in_talk_rounded,
-                            color: Colors.white, size: 32),
+                        child: const Center(
+                          child: Text('S',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w700)),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),

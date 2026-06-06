@@ -1,8 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'token_storage.dart';
 
 const _baseUrl = 'https://synovox.ch/api/v1';
-const _storage = FlutterSecureStorage();
 
 Dio buildDio() {
   final dio = Dio(BaseOptions(
@@ -14,7 +13,7 @@ Dio buildDio() {
 
   dio.interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {
-      final token = await _storage.read(key: 'auth_token');
+      final token = await TokenStorage.read();
       if (token != null) {
         options.headers['Authorization'] = 'Bearer $token';
       }
@@ -22,7 +21,7 @@ Dio buildDio() {
     },
     onError: (error, handler) {
       if (error.response?.statusCode == 401) {
-        _storage.delete(key: 'auth_token');
+        TokenStorage.delete();
       }
       handler.next(error);
     },
