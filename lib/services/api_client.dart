@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'token_storage.dart';
 
-const _baseUrl = 'https://synovox.ch/api/v1';
+const _baseUrl = 'https://api.synovox.ch/api/v1';
 
 Dio buildDio() {
   final dio = Dio(BaseOptions(
