@@ -13,14 +13,16 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     final stats = ref.watch(dashboardProvider);
-    final greeting = _greeting();
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(greeting, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+            const Text('Bienvenue',
+                style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
             Text(
               user?['name'] ?? 'Synovox',
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
@@ -150,13 +152,6 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Bonjour';
-    if (hour < 18) return 'Bonne après-midi';
-    return 'Bonsoir';
   }
 
   Widget _callTile(BuildContext context, dynamic raw) {
