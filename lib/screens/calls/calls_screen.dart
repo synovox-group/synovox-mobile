@@ -4,10 +4,72 @@ import 'package:go_router/go_router.dart';
 import '../../services/api_client.dart';
 import '../../utils/tz.dart';
 
-final callsProvider = FutureProvider<List>((ref) async {
-  final res = await buildDio().get('/calls', queryParameters: {'per_page': 100});
-  return (res.data['data'] as List?) ?? [];
-});
+// ── Pagination state ───────────────────────────────────────────────────────────
+
+class _CallsState {
+  final List items;
+  final int currentPage;
+  final int lastPage;
+  final bool loadingMore;
+  const _CallsState({
+    this.items = const [],
+    this.currentPage = 0,
+    this.lastPage = 1,
+    this.loadingMore = false,
+  });
+  bool get hasMore => currentPage < lastPage;
+  _CallsState copyWith({List? items, int? currentPage, int? lastPage, bool? loadingMore}) =>
+      _CallsState(
+        items: items ?? this.items,
+        currentPage: currentPage ?? this.currentPage,
+        lastPage: lastPage ?? this.lastPage,
+        loadingMore: loadingMore ?? this.loadingMore,
+      );
+}
+
+class _CallsNotifier extends AutoDisposeAsyncNotifier<_CallsState> {
+  static const _perPage = 20;
+
+  @override
+  Future<_CallsState> build() => _fetchPage(1, existing: []);
+
+  Future<_CallsState> _fetchPage(int page, {required List existing}) async {
+    final res = await buildDio().get('/calls', queryParameters: {
+      'page': page,
+      'per_page': _perPage,
+    });
+    final body = res.data;
+    final data = (body['data'] as List?) ?? [];
+    final meta = body['meta'] as Map? ?? body;
+    final lastPage = (meta['last_page'] ?? meta['total_pages'] ?? 1) as int;
+    return _CallsState(
+      items: [...existing, ...data],
+      currentPage: page,
+      lastPage: lastPage,
+    );
+  }
+
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (current == null || !current.hasMore || current.loadingMore) return;
+    state = AsyncData(current.copyWith(loadingMore: true));
+    try {
+      final next = await _fetchPage(current.currentPage + 1, existing: current.items);
+      state = AsyncData(next);
+    } catch (e) {
+      state = AsyncData(current.copyWith(loadingMore: false));
+    }
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _fetchPage(1, existing: []));
+  }
+}
+
+final callsNotifierProvider =
+    AsyncNotifierProvider.autoDispose<_CallsNotifier, _CallsState>(
+        _CallsNotifier.new);
 
 enum CallFilter { all, completed, missed, inProgress }
 
@@ -22,16 +84,31 @@ class CallsScreen extends ConsumerStatefulWidget {
 
 class _CallsScreenState extends ConsumerState<CallsScreen> {
   final _searchCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels >=
+        _scrollCtrl.position.maxScrollExtent - 200) {
+      ref.read(callsNotifierProvider.notifier).loadMore();
+    }
+  }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final calls = ref.watch(callsProvider);
+    final callsAsync = ref.watch(callsNotifierProvider);
     final filter = ref.watch(callFilterProvider);
     final search = ref.watch(callSearchProvider);
 
@@ -82,7 +159,7 @@ class _CallsScreenState extends ConsumerState<CallsScreen> {
             ),
           ),
           Expanded(
-            child: calls.when(
+            child: callsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Column(
@@ -90,26 +167,31 @@ class _CallsScreenState extends ConsumerState<CallsScreen> {
                   children: [
                     const Icon(Icons.cloud_off_rounded, size: 48, color: Color(0xFFCBD5E1)),
                     const SizedBox(height: 12),
-                    Text('Erreur de chargement', style: const TextStyle(color: Color(0xFF64748B))),
+                    const Text('Erreur de chargement',
+                        style: TextStyle(color: Color(0xFF64748B))),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: () => ref.invalidate(callsProvider),
+                      onPressed: () =>
+                          ref.read(callsNotifierProvider.notifier).refresh(),
                       child: const Text('Réessayer'),
                     ),
                   ],
                 ),
               ),
-              data: (list) {
-                final filtered = _filterCalls(list, filter, search);
+              data: (state) {
+                final filtered = _filterCalls(state.items, filter, search);
                 if (filtered.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.phone_missed_rounded, size: 48, color: Colors.grey[300]),
+                        Icon(Icons.phone_missed_rounded,
+                            size: 48, color: Colors.grey[300]),
                         const SizedBox(height: 12),
                         Text(
-                          search.isNotEmpty ? 'Aucun résultat pour "$search"' : 'Aucun appel',
+                          search.isNotEmpty
+                              ? 'Aucun résultat pour "$search"'
+                              : 'Aucun appel',
                           style: const TextStyle(color: Color(0xFF94A3B8)),
                         ),
                       ],
@@ -117,12 +199,28 @@ class _CallsScreenState extends ConsumerState<CallsScreen> {
                   );
                 }
                 return RefreshIndicator(
-                  onRefresh: () => ref.refresh(callsProvider.future),
+                  onRefresh: () =>
+                      ref.read(callsNotifierProvider.notifier).refresh(),
                   child: ListView.separated(
+                    controller: _scrollCtrl,
                     padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length,
+                    itemCount: filtered.length + (state.hasMore ? 1 : 0),
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) => _CallTile(call: filtered[i]),
+                    itemBuilder: (_, i) {
+                      if (i == filtered.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+                      return _CallTile(call: filtered[i]);
+                    },
                   ),
                 );
               },
